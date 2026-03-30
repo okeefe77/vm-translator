@@ -1,19 +1,16 @@
-(ns translator.translate
+(ns translator.translate.push
   (:require [translator.parse :as p]
+            [translator.data :as data]
+            [translator.util :refer [join-lines]]
             [clojure.string :as str]))
 
-(def join-lines
-  "Joins vector of strings with the newline character"
-  (partial str/join "\n"))
-
-(defn push-push-code
+(def push-code 
   "Assembly code that actually pushes the value to the stack and increments the stack pointer"
-  [_]
-  (constantly (join-lines ["@SP"
-                           "A=M"
-                           "M=D"
-                           "@SP"
-                           "M=M+1"])))
+  (join-lines ["@SP"
+               "A=M"
+               "M=D"
+               "@SP"
+               "M=M+1"]))
 
 (defn push-base-code
   "Returns required assembly code for a particular base"
@@ -30,9 +27,22 @@
   "Returns code to work with the i value of a vm instruction"
   [{:keys [base i]}])
 
-#_(defn push->asm
-  [{:keys [base i]} :as instruction]
-  )
+(defn push-dispatch
+  [{:keys [base]}]
+  (if (contains? data/registers base) :register
+    (keyword base)))
+
+(defmulti translate-push push-dispatch)
+
+(defmethod push-dispatch :register
+  [{:keys [base i]}]
+  (let [register (get {"local" "@LCL"
+                       "argument" "@ARG"
+                       "this" "@THIS"
+                       "that" "@THAT"}
+                      base)]
+    (join-lines (concat [""]))))
+
 
 (comment
   (if (contains? #{1 2 3 4} 5) "it's in there")
