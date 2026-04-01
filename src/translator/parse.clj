@@ -20,8 +20,7 @@
         file-tag (first (str/split filename #"\."))
         keys [:command :base :i]]
     (assoc (zipmap keys parts)
-           :filename file-tag
-           :line line)))
+           :filename file-tag)))
 
 (comment
   (parse-line "Test.vm" "pop constant 5")

@@ -1,8 +1,8 @@
 (ns translator.translate.push
-  (:require [translator.parse :as p]
+  (:require [translator.translate.core :as tc]
+            [translator.translate.push-pop-common :as pp]
             [translator.data :as data]
-            [translator.util :refer [join-lines]]
-            [clojure.string :as str]))
+            [translator.util :refer [join-lines]]))
 
 (def push-code 
   "Assembly code that actually pushes the value to the stack and increments the stack pointer"
@@ -12,35 +12,20 @@
    "@SP"
    "M=M+1"])
 
-(defn get-register
-  "Returns the assembly code to fetch the value of the register in the passed memory segment"
-  [base]
-  (let [register (get {"local"    "@LCL"
-                       "argument" "@ARG"
-                       "this"     "@THIS"
-                       "that"     "@THAT"}
-                      base)]
-    [register "A=D+A" "D=M"]))
-
-
-(defn push-dispatch
-  "Dispatch function for translate-push multimethod"
-  [{:keys [base]}]
-  (if (contains? data/registers base) :register
-    (keyword base)))
-
-(defmulti translate-push push-dispatch)
+(defmulti translate-push pp/dispatch)
 
 (defmethod translate-push :register
   [{:keys [base i]}]
-  (join-lines (reduce into [[(str "@" i) "D=A"]
-                            (get-register base)
-                            push-code])))
+  (let [register (get data/register-for base)
+        code [register "A=D+A" "D=M"]]
+    (join-lines (reduce into [[(str "@" i) "D=A"]
+                              code
+                              push-code]))))
 
 (defmethod translate-push :static
  [{:keys [i filename]}]
  (let [varname (str "@" filename "." i)]
-   (into [varname "D=M"] push-code)))
+   (join-lines (into [varname "D=M"] push-code))))
 
 (defmethod translate-push :temp
  [{:keys [i]}]
@@ -56,8 +41,17 @@
    (join-lines (into [pointer "D=M"] push-code))))
 
 
+(defmethod tc/make-comment "push"
+  [command-data]
+  (str "// push " (:base command-data) " " (:i command-data) "\n"))
+
+(defmethod tc/translate-command "push"
+  [command-data]
+  (let [comment (tc/make-comment command-data)
+        code (translate-push command-data)]
+    (str comment code "\n\n")))
+
 (comment
-  (get-register "local")
   (translate-push {:action "push"
                    :base "constant"
                    :i 4

@@ -1,20 +1,13 @@
-(ns translator.translate.core
-  (:require [translator.translate.push :as push]))
+(ns translator.translate.core)
 
 
-(defmulti translate :command)
-
-(defmethod translate "push"
-  [command-data]
-  (push/translate-push command-data))
-
-
-(defn translate-command
-  [{:keys [line] :as command-data}]
-  (let [comment (str "// " line "\n")]
-    (str comment (translate command-data) "\n\n")))
+(defmulti translate-command :command)
+(defmulti make-comment :command)
 
 
 (comment
-  (translate-command {:filename "Test" :i 5 :command "push" :base "static" :line "push static 5"})
+  (translate-command {:filename "Test" 
+                      :i        5 
+                      :command  "push" 
+                      :base     "static"})
   )
